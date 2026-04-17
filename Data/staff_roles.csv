@@ -1,0 +1,5 @@
+role,station,covers_per_hour_per_staff,min_staff_per_shift,max_staff_per_shift,shift_length_hours,hourly_cost
+server,dining,18,1,8,6,15.0
+cook,grill,25,1,6,6,18.0
+cook,fryer,20,1,4,6,17.0
+manager,floor,40,1,2,8,25.0

@@ -1,0 +1,5 @@
+ingredient_id,ingredient_name,shelf_life_days,lead_time_days,min_order_qty,uom,storage_type
+I001,Chicken Patty,2,1,50,piece,freezer
+I002,Burger Bun,1,1,100,piece,ambient
+I003,Potato,5,2,20,kg,ambient
+I004,Oil,30,3,10,litre,ambient

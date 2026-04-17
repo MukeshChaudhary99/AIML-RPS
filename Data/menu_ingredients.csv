@@ -1,0 +1,5 @@
+menu_item_id,menu_item_name,category,ingredient_id,ingredient_name,qty_per_dish,uom,yield_loss_pct
+M001,Chicken Burger,Main,I001,Chicken Patty,1.0,piece,0.05
+M001,Chicken Burger,Main,I002,Burger Bun,1.0,piece,0.02
+M002,French Fries,Side,I003,Potato,0.2,kg,0.1
+M002,French Fries,Side,I004,Oil,0.05,litre,0.08
