@@ -1,0 +1,10 @@
+Restaurant Resource Planning System — Self-Learning Forecaster Medium Problem Statement A restaurant wastes money in two ways: over-resourcing (too many staff, too much food ordered, ingredients expiring) and under-resourcing (understaffed nights, unavailable dishes mid-service, angry customers). Your job is to build a system that predicts three things for any upcoming day: 
+1. How many covers (customers) to expect, broken down by hour. 
+2. How many staff to schedule, by role and station. 
+3. How much of each ingredient to order, accounting for shelf life and supplier lead times. 
+
+The hard part: your predictions will be wrong. The system must accept corrections from managers 
+("you predicted 120 covers, we actually got 85 because of rain") 
+and adjust its coefficients over time until its predictions converge toward accuracy.
+This is not a one-shot model. 
+It's a feedback loop. 

@@ -9,3 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .vscode/
+
+# Runtime artifacts
+feedback_store/
+catboost_info/

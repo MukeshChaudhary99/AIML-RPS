@@ -1,0 +1,60 @@
+ingredient_id,ingredient_name,uom,category,shelf_life_days,lead_time_days,min_order_qty,current_stock,safety_stock,storage_type,supplier_id
+I001,Tea Leaves,kg,Beverage Base,180,5,2,8,1,ambient,S001
+I002,Milk,litre,Dairy,2,1,10,15,5,chiller,S002
+I003,Sugar,kg,Dry Grocery,365,7,5,20,3,ambient,S003
+I004,Coffee Powder,kg,Beverage Base,180,5,1,5,1,ambient,S001
+I005,Water,litre,Utility,999,0,0,500,50,ambient,S000
+I006,Ice Cubes,kg,Frozen Utility,1,0,10,40,10,freezer,S000
+I007,Lemon,piece,Fresh Produce,5,1,20,40,10,chiller,S004
+I008,Mango Pulp,kg,Fruit Base,7,2,5,10,3,chiller,S005
+I009,Soda,litre,Beverage Base,30,2,12,24,6,ambient,S006
+I010,Egg,piece,Protein,7,1,30,90,20,chiller,S007
+I011,Butter,kg,Dairy,15,2,2,6,1,chiller,S002
+I012,Spice Mix,kg,Dry Grocery,180,5,1,4,1,ambient,S003
+I013,Cheese,kg,Dairy,10,2,2,5,1,chiller,S002
+I014,Poha,kg,Dry Grocery,180,5,5,15,3,ambient,S003
+I015,Onion,kg,Fresh Produce,10,2,5,20,5,ambient,S004
+I016,Potato,kg,Fresh Produce,15,2,10,40,10,ambient,S004
+I017,Semolina,kg,Dry Grocery,180,5,5,12,2,ambient,S003
+I018,Wheat Flour,kg,Dry Grocery,120,5,10,30,5,ambient,S003
+I019,Idli Batter,kg,Prepared Base,3,1,5,10,3,chiller,S008
+I020,Sambar Base,kg,Prepared Base,3,1,5,12,3,chiller,S008
+I021,Coconut Chutney,kg,Prepared Base,1,1,2,4,1,chiller,S008
+I022,Dosa Batter,kg,Prepared Base,3,1,5,10,3,chiller,S008
+I023,Bread Slices,piece,Bakery,3,1,20,60,20,ambient,S009
+I024,Mixed Veg Filling,kg,Prepared Filling,2,1,5,8,2,chiller,S008
+I025,Chicken Filling,kg,Prepared Filling,2,1,5,8,2,chiller,S010
+I026,Frying Oil,litre,Oil,30,3,10,20,5,ambient,S011
+I027,Garlic,kg,Fresh Produce,15,2,2,6,1,ambient,S004
+I028,Puff Pastry Sheet,piece,Frozen Bakery,30,3,20,40,10,freezer,S009
+I029,Paneer,kg,Dairy Protein,4,1,5,10,3,chiller,S002
+I030,Besan,kg,Dry Grocery,180,5,5,10,2,ambient,S003
+I031,Chicken Wings,kg,Protein,2,1,5,12,3,freezer,S010
+I032,Sweet Corn,kg,Frozen Veg,30,3,5,10,2,freezer,S012
+I033,Yogurt Marinade,kg,Prepared Base,3,1,3,6,1,chiller,S008
+I034,Chicken Boneless,kg,Protein,2,1,5,15,4,freezer,S010
+I035,Tomato Soup Base,kg,Prepared Base,5,2,5,8,2,chiller,S008
+I036,Sweet Corn Soup Base,kg,Prepared Base,5,2,5,8,2,chiller,S008
+I037,Chicken Soup Base,kg,Prepared Base,3,1,5,8,2,chiller,S008
+I038,Lettuce,kg,Fresh Produce,4,1,3,6,2,chiller,S004
+I039,Cucumber,kg,Fresh Produce,5,1,5,10,2,chiller,S004
+I040,Tomato,kg,Fresh Produce,5,1,5,10,2,chiller,S004
+I041,Caesar Dressing,litre,Prepared Dressing,10,2,2,4,1,chiller,S013
+I042,Pizza Base,piece,Bakery,5,2,20,40,10,ambient,S009
+I043,Pizza Sauce,kg,Prepared Sauce,7,2,5,10,2,chiller,S013
+I044,Burger Bun,piece,Bakery,3,1,24,48,12,ambient,S009
+I045,Veg Patty,piece,Frozen Prepared,15,2,20,40,10,freezer,S014
+I046,Mayonnaise,litre,Condiment,30,3,5,8,2,chiller,S013
+I047,Chicken Patty,piece,Frozen Prepared,10,2,20,40,10,freezer,S014
+I048,Pasta,kg,Dry Grocery,365,7,5,15,3,ambient,S003
+I049,Pasta Sauce,kg,Prepared Sauce,10,2,5,8,2,chiller,S013
+I050,Rice,kg,Dry Grocery,365,7,10,40,10,ambient,S003
+I051,Biryani Masala,kg,Dry Grocery,180,5,2,6,1,ambient,S003
+I052,Toor Dal,kg,Dry Grocery,365,7,5,15,3,ambient,S003
+I053,Butter Chicken Gravy Base,kg,Prepared Base,5,2,5,10,2,chiller,S008
+I054,Noodles,kg,Dry Grocery,365,7,5,15,3,ambient,S003
+I055,Gulab Jamun Mix,kg,Dessert Base,180,5,2,6,1,ambient,S015
+I056,Sugar Syrup,litre,Dessert Base,15,2,5,8,2,ambient,S015
+I057,Brownie Base,piece,Dessert Base,10,3,12,24,6,ambient,S015
+I058,Vanilla Ice Cream,kg,Frozen Dessert,20,2,5,10,3,freezer,S016
+I059,Chocolate Sauce,litre,Dessert Topping,60,3,2,5,1,ambient,S015

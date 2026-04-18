@@ -1,0 +1,160 @@
+menu_item_id,ingredient_id,ingredient_name,qty_per_dish,uom,yield_loss_pct
+M001,I001,Tea Leaves,0.01,kg,0.02
+M001,I002,Milk,0.15,litre,0.03
+M001,I003,Sugar,0.02,kg,0.01
+M002,I004,Coffee Powder,0.01,kg,0.02
+M002,I005,Water,0.20,litre,0.00
+M002,I003,Sugar,0.02,kg,0.01
+M003,I004,Coffee Powder,0.01,kg,0.02
+M003,I002,Milk,0.20,litre,0.03
+M003,I006,Ice Cubes,0.10,kg,0.00
+M003,I003,Sugar,0.02,kg,0.01
+M004,I007,Lemon,1.00,piece,0.05
+M004,I003,Sugar,0.02,kg,0.01
+M004,I005,Water,0.25,litre,0.00
+M005,I008,Mango Pulp,0.20,kg,0.05
+M005,I002,Milk,0.20,litre,0.03
+M005,I003,Sugar,0.02,kg,0.01
+M005,I006,Ice Cubes,0.10,kg,0.00
+M006,I007,Lemon,1.00,piece,0.05
+M006,I009,Soda,0.25,litre,0.00
+M006,I003,Sugar,0.02,kg,0.01
+M007,I010,Egg,2.00,piece,0.02
+M007,I011,Butter,0.01,kg,0.02
+M007,I012,Spice Mix,0.005,kg,0.01
+M008,I010,Egg,2.00,piece,0.02
+M008,I013,Cheese,0.03,kg,0.03
+M008,I011,Butter,0.01,kg,0.02
+M008,I012,Spice Mix,0.005,kg,0.01
+M009,I014,Poha,0.10,kg,0.03
+M009,I015,Onion,0.03,kg,0.05
+M009,I016,Potato,0.05,kg,0.08
+M009,I012,Spice Mix,0.005,kg,0.01
+M010,I017,Semolina,0.10,kg,0.02
+M010,I015,Onion,0.03,kg,0.05
+M010,I012,Spice Mix,0.005,kg,0.01
+M011,I018,Wheat Flour,0.12,kg,0.02
+M011,I016,Potato,0.08,kg,0.08
+M011,I015,Onion,0.02,kg,0.05
+M011,I011,Butter,0.01,kg,0.02
+M012,I019,Idli Batter,0.20,kg,0.03
+M012,I020,Sambar Base,0.15,kg,0.04
+M012,I021,Coconut Chutney,0.05,kg,0.04
+M013,I022,Dosa Batter,0.20,kg,0.03
+M013,I016,Potato,0.08,kg,0.08
+M013,I015,Onion,0.02,kg,0.05
+M013,I020,Sambar Base,0.15,kg,0.04
+M014,I023,Bread Slices,4.00,piece,0.01
+M014,I024,Mixed Veg Filling,0.10,kg,0.05
+M014,I011,Butter,0.01,kg,0.02
+M015,I023,Bread Slices,4.00,piece,0.01
+M015,I025,Chicken Filling,0.12,kg,0.05
+M015,I011,Butter,0.01,kg,0.02
+M016,I016,Potato,0.20,kg,0.08
+M016,I026,Frying Oil,0.05,litre,0.02
+M016,I012,Spice Mix,0.005,kg,0.01
+M017,I023,Bread Slices,4.00,piece,0.01
+M017,I013,Cheese,0.04,kg,0.03
+M017,I027,Garlic,0.005,kg,0.05
+M017,I011,Butter,0.01,kg,0.02
+M018,I028,Puff Pastry Sheet,1.00,piece,0.02
+M018,I024,Mixed Veg Filling,0.08,kg,0.05
+M019,I028,Puff Pastry Sheet,1.00,piece,0.02
+M019,I025,Chicken Filling,0.08,kg,0.05
+M020,I018,Wheat Flour,0.08,kg,0.02
+M020,I016,Potato,0.06,kg,0.08
+M020,I026,Frying Oil,0.04,litre,0.02
+M021,I029,Paneer,0.08,kg,0.04
+M021,I030,Besan,0.05,kg,0.02
+M021,I026,Frying Oil,0.04,litre,0.02
+M022,I031,Chicken Wings,0.20,kg,0.05
+M022,I026,Frying Oil,0.05,litre,0.02
+M022,I012,Spice Mix,0.01,kg,0.01
+M023,I032,Sweet Corn,0.10,kg,0.04
+M023,I026,Frying Oil,0.03,litre,0.02
+M023,I012,Spice Mix,0.005,kg,0.01
+M024,I029,Paneer,0.12,kg,0.04
+M024,I033,Yogurt Marinade,0.03,kg,0.03
+M024,I012,Spice Mix,0.01,kg,0.01
+M025,I034,Chicken Boneless,0.15,kg,0.05
+M025,I033,Yogurt Marinade,0.03,kg,0.03
+M025,I012,Spice Mix,0.01,kg,0.01
+M026,I035,Tomato Soup Base,0.20,kg,0.04
+M026,I011,Butter,0.005,kg,0.02
+M027,I036,Sweet Corn Soup Base,0.20,kg,0.04
+M027,I011,Butter,0.005,kg,0.02
+M028,I037,Chicken Soup Base,0.20,kg,0.05
+M028,I034,Chicken Boneless,0.05,kg,0.05
+M029,I038,Lettuce,0.08,kg,0.06
+M029,I039,Cucumber,0.05,kg,0.05
+M029,I040,Tomato,0.05,kg,0.05
+M030,I038,Lettuce,0.08,kg,0.06
+M030,I039,Cucumber,0.05,kg,0.05
+M030,I040,Tomato,0.05,kg,0.05
+M030,I013,Cheese,0.03,kg,0.03
+M031,I038,Lettuce,0.08,kg,0.06
+M031,I039,Cucumber,0.05,kg,0.05
+M031,I040,Tomato,0.05,kg,0.05
+M031,I041,Caesar Dressing,0.03,litre,0.02
+M032,I042,Pizza Base,1.00,piece,0.01
+M032,I043,Pizza Sauce,0.08,kg,0.03
+M032,I013,Cheese,0.08,kg,0.03
+M033,I042,Pizza Base,1.00,piece,0.01
+M033,I043,Pizza Sauce,0.08,kg,0.03
+M033,I013,Cheese,0.08,kg,0.03
+M033,I024,Mixed Veg Filling,0.10,kg,0.05
+M034,I042,Pizza Base,1.00,piece,0.01
+M034,I043,Pizza Sauce,0.08,kg,0.03
+M034,I013,Cheese,0.08,kg,0.03
+M034,I025,Chicken Filling,0.10,kg,0.05
+M035,I044,Burger Bun,1.00,piece,0.01
+M035,I045,Veg Patty,1.00,piece,0.03
+M035,I046,Mayonnaise,0.02,litre,0.02
+M036,I044,Burger Bun,1.00,piece,0.01
+M036,I047,Chicken Patty,1.00,piece,0.03
+M036,I046,Mayonnaise,0.02,litre,0.02
+M037,I048,Pasta,0.12,kg,0.02
+M037,I049,Pasta Sauce,0.10,kg,0.03
+M037,I013,Cheese,0.03,kg,0.03
+M038,I048,Pasta,0.12,kg,0.02
+M038,I049,Pasta Sauce,0.10,kg,0.03
+M038,I025,Chicken Filling,0.08,kg,0.05
+M039,I050,Rice,0.15,kg,0.02
+M039,I024,Mixed Veg Filling,0.12,kg,0.05
+M039,I051,Biryani Masala,0.01,kg,0.01
+M040,I050,Rice,0.15,kg,0.02
+M040,I034,Chicken Boneless,0.12,kg,0.05
+M040,I051,Biryani Masala,0.01,kg,0.01
+M041,I052,Toor Dal,0.10,kg,0.02
+M041,I015,Onion,0.03,kg,0.05
+M041,I040,Tomato,0.03,kg,0.05
+M041,I012,Spice Mix,0.005,kg,0.01
+M042,I029,Paneer,0.12,kg,0.04
+M042,I053,Butter Chicken Gravy Base,0.12,kg,0.04
+M042,I011,Butter,0.01,kg,0.02
+M043,I034,Chicken Boneless,0.12,kg,0.05
+M043,I053,Butter Chicken Gravy Base,0.12,kg,0.04
+M043,I011,Butter,0.01,kg,0.02
+M044,I050,Rice,0.15,kg,0.02
+M044,I024,Mixed Veg Filling,0.10,kg,0.05
+M044,I012,Spice Mix,0.005,kg,0.01
+M045,I050,Rice,0.15,kg,0.02
+M045,I025,Chicken Filling,0.10,kg,0.05
+M045,I012,Spice Mix,0.005,kg,0.01
+M046,I054,Noodles,0.12,kg,0.02
+M046,I024,Mixed Veg Filling,0.10,kg,0.05
+M046,I012,Spice Mix,0.005,kg,0.01
+M047,I054,Noodles,0.12,kg,0.02
+M047,I025,Chicken Filling,0.10,kg,0.05
+M047,I012,Spice Mix,0.005,kg,0.01
+M048,I018,Wheat Flour,0.08,kg,0.02
+M048,I011,Butter,0.005,kg,0.02
+M049,I018,Wheat Flour,0.08,kg,0.02
+M049,I011,Butter,0.01,kg,0.02
+M050,I018,Wheat Flour,0.08,kg,0.02
+M051,I055,Gulab Jamun Mix,0.08,kg,0.02
+M051,I056,Sugar Syrup,0.05,litre,0.01
+M052,I057,Brownie Base,1.00,piece,0.02
+M052,I058,Vanilla Ice Cream,0.10,kg,0.02
+M053,I058,Vanilla Ice Cream,0.15,kg,0.02
+M053,I059,Chocolate Sauce,0.02,litre,0.01

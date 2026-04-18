@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "catboost>=1.2.10",
+    "fastapi[standard]>=0.116.1",
+    "lightgbm>=4.6.0",
     "numpy>=2.4.4",
     "pandas>=3.0.2",
     "scikit-learn>=1.7.2",
+    "uvicorn>=0.35.0",
     "xgboost>=3.1.1",
 ]

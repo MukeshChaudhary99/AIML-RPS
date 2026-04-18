@@ -1,0 +1,393 @@
+{
+  "notes": {
+    "usage": "Use any scenario request_body with POST /forecast/covers, POST /plan/staff, POST /plan/ingredients, or POST /plan/full.",
+    "time_format": "All timestamps are ISO-8601 local datetimes.",
+    "feedback_usage": "Use the feedback_examples bodies with POST /feedback after a forecast has already been generated for the same timestamps.",
+    "dashboard_usage": "Open GET / in the running server to view the startup dashboard with summary tables.",
+    "request_note": "Reservations are now supported in hourly input and should be included whenever you know them."
+  },
+  "forecast_scenarios": [
+    {
+      "scenario_name": "weekday_normal_lunch",
+      "description": "Normal weekday lunch service with no holiday, event, rain, or promotion.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-04-21T12:00:00",
+            "reservations": 14,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 31.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "summer",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-04-21T13:00:00",
+            "reservations": 16,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 32.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "summer",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-04-21T14:00:00",
+            "reservations": 11,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 33.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "summer",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "weekday_promotion_lunch",
+      "description": "Weekday lunch with a promotion active.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-04-22T12:00:00",
+            "reservations": 18,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 30.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "summer",
+            "promotion_flag": 1
+          },
+          {
+            "timestamp": "2026-04-22T13:00:00",
+            "reservations": 19,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 31.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "summer",
+            "promotion_flag": 1
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "rainy_weekday_dinner",
+      "description": "Rainy weekday dinner, useful for checking weather sensitivity.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-07-15T19:00:00",
+            "reservations": 12,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 27.0,
+            "rain_mm": 8.0,
+            "is_weekend": 0,
+            "season": "monsoon",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-07-15T20:00:00",
+            "reservations": 10,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 26.0,
+            "rain_mm": 12.0,
+            "is_weekend": 0,
+            "season": "monsoon",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-07-15T21:00:00",
+            "reservations": 8,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 26.0,
+            "rain_mm": 15.0,
+            "is_weekend": 0,
+            "season": "monsoon",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "weekend_family_lunch",
+      "description": "Normal weekend lunch rush.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-04-25T12:00:00",
+            "reservations": 22,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 32.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "summer",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-04-25T13:00:00",
+            "reservations": 24,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 33.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "summer",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-04-25T14:00:00",
+            "reservations": 20,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 33.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "summer",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "holiday_dinner",
+      "description": "Holiday dinner rush without rain.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-11-14T19:00:00",
+            "reservations": 26,
+            "holiday_flag": 1,
+            "event_flag": 0,
+            "holiday_name": "Festival Holiday",
+            "temp_c": 24.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "festive",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-11-14T20:00:00",
+            "reservations": 28,
+            "holiday_flag": 1,
+            "event_flag": 0,
+            "holiday_name": "Festival Holiday",
+            "temp_c": 23.0,
+            "rain_mm": 0.0,
+            "is_weekend": 0,
+            "season": "festive",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "event_dinner_peak",
+      "description": "Local event nearby during dinner service.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-08-08T19:00:00",
+            "reservations": 20,
+            "holiday_flag": 0,
+            "event_flag": 1,
+            "event_name": "Cricket Match",
+            "temp_c": 28.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "monsoon",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-08-08T20:00:00",
+            "reservations": 22,
+            "holiday_flag": 0,
+            "event_flag": 1,
+            "event_name": "Cricket Match",
+            "temp_c": 27.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "monsoon",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-08-08T21:00:00",
+            "reservations": 18,
+            "holiday_flag": 0,
+            "event_flag": 1,
+            "event_name": "Cricket Match",
+            "temp_c": 27.0,
+            "rain_mm": 2.0,
+            "is_weekend": 1,
+            "season": "monsoon",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "heavy_rain_breakfast",
+      "description": "Heavy rain breakfast window, useful because breakfast currently looks weaker in validation.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-07-18T08:00:00",
+            "reservations": 9,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 24.0,
+            "rain_mm": 20.0,
+            "is_weekend": 1,
+            "season": "monsoon",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-07-18T09:00:00",
+            "reservations": 11,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 24.0,
+            "rain_mm": 25.0,
+            "is_weekend": 1,
+            "season": "monsoon",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "festive_breakfast",
+      "description": "Festive breakfast window with reservations, useful because festive breakfast is still a weaker slice.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-11-15T08:00:00",
+            "reservations": 12,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 22.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "festive",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-11-15T09:00:00",
+            "reservations": 15,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 23.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "festive",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-11-15T10:00:00",
+            "reservations": 13,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 23.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "festive",
+            "promotion_flag": 1
+          }
+        ],
+        "auto_retrain": true
+      }
+    },
+    {
+      "scenario_name": "winter_breakfast",
+      "description": "Cold winter breakfast with known reservations.",
+      "request_body": {
+        "hours": [
+          {
+            "timestamp": "2026-01-10T08:00:00",
+            "reservations": 10,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 14.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "winter",
+            "promotion_flag": 0
+          },
+          {
+            "timestamp": "2026-01-10T09:00:00",
+            "reservations": 12,
+            "holiday_flag": 0,
+            "event_flag": 0,
+            "temp_c": 15.0,
+            "rain_mm": 0.0,
+            "is_weekend": 1,
+            "season": "winter",
+            "promotion_flag": 0
+          }
+        ],
+        "auto_retrain": true
+      }
+    }
+  ],
+  "feedback_examples": [
+    {
+      "scenario_name": "rain_drop_feedback",
+      "description": "Manager reports lower covers than forecast because of rain.",
+      "request_body": {
+        "entries": [
+          {
+            "timestamp": "2026-07-15T20:00:00",
+            "actual_covers": 26,
+            "actual_reservations": 10,
+            "actual_walk_ins": 16,
+            "manager_note": "Heavy rain reduced walk-ins more than expected.",
+            "corrected_covers": 26,
+            "manager_reason": "rain"
+          }
+        ],
+        "retrain": true
+      }
+    },
+    {
+      "scenario_name": "event_spike_feedback_batch",
+      "description": "Batch feedback for event-driven demand that exceeded forecast.",
+      "request_body": {
+        "entries": [
+          {
+            "timestamp": "2026-08-08T19:00:00",
+            "actual_covers": 58,
+            "manager_note": "Event crowd arrived earlier than usual.",
+            "corrected_covers": 58,
+            "manager_reason": "event"
+          },
+          {
+            "timestamp": "2026-08-08T20:00:00",
+            "actual_covers": 64,
+            "manager_note": "Event crowd stayed longer and dinner demand was stronger.",
+            "corrected_covers": 64,
+            "manager_reason": "event"
+          }
+        ],
+        "retrain": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+menu_item_id,menu_item_name,category,sub_category,service_period,station,prep_minutes,is_veg,is_beverage,is_active
+M001,Masala Tea,Drinks,Hot Beverage,all_day,beverage,2,1,1,1
+M002,Black Coffee,Drinks,Hot Beverage,all_day,beverage,2,1,1,1
+M003,Cold Coffee,Drinks,Cold Beverage,all_day,beverage,4,1,1,1
+M004,Lemonade,Drinks,Cold Beverage,all_day,beverage,3,1,1,1
+M005,Mango Shake,Drinks,Shake,all_day,beverage,5,1,1,1
+M006,Fresh Lime Soda,Drinks,Cold Beverage,all_day,beverage,3,1,1,1
+M007,Plain Omelette,Breakfast,Egg Breakfast,breakfast,light_kitchen,6,0,0,1
+M008,Cheese Omelette,Breakfast,Egg Breakfast,breakfast,light_kitchen,7,0,0,1
+M009,Poha,Breakfast,Indian Breakfast,breakfast,light_kitchen,5,1,0,1
+M010,Upma,Breakfast,Indian Breakfast,breakfast,light_kitchen,5,1,0,1
+M011,Aloo Paratha,Breakfast,Indian Breakfast,breakfast,main_kitchen,10,1,0,1
+M012,Idli Sambar,Breakfast,South Indian Breakfast,breakfast,light_kitchen,8,1,0,1
+M013,Masala Dosa,Breakfast,South Indian Breakfast,breakfast,main_kitchen,12,1,0,1
+M014,Veg Sandwich,Snacks,Quick Bites,all_day,light_kitchen,7,1,0,1
+M015,Chicken Sandwich,Snacks,Quick Bites,all_day,light_kitchen,8,0,0,1
+M016,French Fries,Snacks,Fried Snacks,all_day,light_kitchen,6,1,0,1
+M017,Cheese Garlic Bread,Snacks,Baked Snacks,evening,light_kitchen,8,1,0,1
+M018,Veg Puff,Snacks,Bakery Snacks,evening,light_kitchen,3,1,0,1
+M019,Chicken Puff,Snacks,Bakery Snacks,evening,light_kitchen,3,0,0,1
+M020,Samosa,Snacks,Fried Snacks,evening,light_kitchen,5,1,0,1
+M021,Paneer Pakora,Snacks,Fried Snacks,evening,light_kitchen,7,1,0,1
+M022,Chicken Wings,Starter,Fried Starter,lunch_dinner,light_kitchen,10,0,0,1
+M023,Crispy Corn,Starter,Fried Starter,lunch_dinner,light_kitchen,8,1,0,1
+M024,Paneer Tikka,Starter,Grilled Starter,lunch_dinner,main_kitchen,12,1,0,1
+M025,Chicken Tikka,Starter,Grilled Starter,lunch_dinner,main_kitchen,14,0,0,1
+M026,Tomato Soup,Starter,Soup,lunch_dinner,main_kitchen,6,1,0,1
+M027,Sweet Corn Soup,Starter,Soup,lunch_dinner,main_kitchen,6,1,0,1
+M028,Chicken Soup,Starter,Soup,lunch_dinner,main_kitchen,7,0,0,1
+M029,Green Salad,Salad,Fresh Salad,lunch_dinner,light_kitchen,5,1,0,1
+M030,Greek Salad,Salad,Fresh Salad,lunch_dinner,light_kitchen,7,1,0,1
+M031,Caesar Salad,Salad,Fresh Salad,lunch_dinner,light_kitchen,8,0,0,1
+M032,Margherita Pizza,Main,Pizza,lunch_dinner,main_kitchen,15,1,0,1
+M033,Farmhouse Pizza,Main,Pizza,lunch_dinner,main_kitchen,17,1,0,1
+M034,Chicken Pizza,Main,Pizza,lunch_dinner,main_kitchen,18,0,0,1
+M035,Veg Burger,Main,Burger,lunch_dinner,main_kitchen,10,1,0,1
+M036,Chicken Burger,Main,Burger,lunch_dinner,main_kitchen,12,0,0,1
+M037,Veg Pasta,Main,Pasta,lunch_dinner,main_kitchen,14,1,0,1
+M038,Chicken Pasta,Main,Pasta,lunch_dinner,main_kitchen,15,0,0,1
+M039,Veg Biryani,Main,Rice,lunch_dinner,main_kitchen,16,1,0,1
+M040,Chicken Biryani,Main,Rice,lunch_dinner,main_kitchen,18,0,0,1
+M041,Dal Tadka,Main,Curry,lunch_dinner,main_kitchen,10,1,0,1
+M042,Paneer Butter Masala,Main,Curry,lunch_dinner,main_kitchen,14,1,0,1
+M043,Butter Chicken,Main,Curry,lunch_dinner,main_kitchen,16,0,0,1
+M044,Veg Fried Rice,Main,Rice,lunch_dinner,main_kitchen,12,1,0,1
+M045,Chicken Fried Rice,Main,Rice,lunch_dinner,main_kitchen,13,0,0,1
+M046,Hakka Noodles,Main,Noodles,lunch_dinner,main_kitchen,12,1,0,1
+M047,Chicken Noodles,Main,Noodles,lunch_dinner,main_kitchen,13,0,0,1
+M048,Plain Naan,Bread,Indian Bread,lunch_dinner,main_kitchen,4,1,0,1
+M049,Butter Naan,Bread,Indian Bread,lunch_dinner,main_kitchen,5,1,0,1
+M050,Tandoori Roti,Bread,Indian Bread,lunch_dinner,main_kitchen,4,1,0,1
+M051,Gulab Jamun,Dessert,Indian Dessert,lunch_dinner,light_kitchen,2,1,0,1
+M052,Brownie with Ice Cream,Dessert,Western Dessert,lunch_dinner,light_kitchen,4,1,0,1
+M053,Ice Cream Sundae,Dessert,Cold Dessert,lunch_dinner,light_kitchen,3,1,0,1
