@@ -4,6 +4,7 @@ from html import escape
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 from src.config import AppConfig, load_app_config
@@ -16,7 +17,7 @@ from src.utils import format_dataframe_block, format_key_value_block, get_logger
 class RestaurantPlanningService:
     def __init__(self, app_config: Optional[AppConfig] = None):
         self.config = app_config or load_app_config()
-        self.logger = get_logger("rps.service", self.config.api.log_level)
+        self.logger = get_logger(__name__, self.config.api.log_level)
 
         self.feedback_loop = ForecastFeedbackLoop(
             config=FeedbackLoopConfig(
@@ -30,6 +31,23 @@ class RestaurantPlanningService:
                 high_error_weight=self.config.feedback.high_error_weight,
                 manager_feedback_weight=self.config.feedback.manager_feedback_weight,
                 max_sample_weight=self.config.feedback.max_sample_weight,
+                startup_rows_per_group=self.config.forecast.startup_rows_per_group,
+                startup_max_test_fraction=self.config.forecast.startup_max_test_fraction,
+                startup_recent_fraction=self.config.forecast.startup_recent_fraction,
+                startup_random_state=self.config.forecast.startup_random_state,
+                xgb_params={
+                    "n_jobs": self.config.forecast.n_jobs,
+                    "n_estimators": self.config.forecast.n_estimators,
+                    "max_depth": self.config.forecast.max_depth,
+                    "learning_rate": self.config.forecast.learning_rate,
+                    "subsample": self.config.forecast.subsample,
+                    "colsample_bytree": self.config.forecast.colsample_bytree,
+                    "min_child_weight": self.config.forecast.min_child_weight,
+                    "gamma": self.config.forecast.gamma,
+                    "reg_alpha": self.config.forecast.reg_alpha,
+                    "reg_lambda": self.config.forecast.reg_lambda,
+                },
+                early_stopping_rounds=self.config.forecast.early_stopping_rounds,
             )
         )
         self.staff_planner = StaffPlanner(
@@ -47,6 +65,178 @@ class RestaurantPlanningService:
                 reorder_review_days=self.config.ingredient.reorder_review_days,
             )
         )
+
+    def _serialize_scalar(self, value):
+        if pd.isna(value):
+            return None
+        if isinstance(value, pd.Timestamp):
+            return value.isoformat()
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.floating):
+            return float(round(value, 3))
+        return value
+
+    def build_forecast_response(self, forecast_df: pd.DataFrame) -> list[dict]:
+        if forecast_df.empty:
+            return []
+
+        ordered_df = forecast_df.copy()
+        ordered_df["timestamp"] = pd.to_datetime(ordered_df["timestamp"])
+        ordered_df = ordered_df.sort_values("timestamp")
+        response_rows = []
+        for _, row in ordered_df.iterrows():
+            response_rows.append(
+                {
+                    "timestamp": row["timestamp"].isoformat(),
+                    "predicted_covers": int(row["predicted_covers"]),
+                }
+            )
+        return response_rows
+
+    def build_staff_response(
+        self,
+        forecast_df: pd.DataFrame,
+        hourly_staff_plan_df: pd.DataFrame,
+    ) -> list[dict]:
+        if forecast_df.empty:
+            return []
+
+        forecast_df = forecast_df.copy()
+        forecast_df["timestamp"] = pd.to_datetime(forecast_df["timestamp"])
+        hourly_staff_plan_df = hourly_staff_plan_df.copy()
+        hourly_staff_plan_df["timestamp"] = pd.to_datetime(hourly_staff_plan_df["timestamp"])
+
+        staff_by_timestamp = {}
+        if not hourly_staff_plan_df.empty:
+            ordered_staff_df = hourly_staff_plan_df.sort_values(
+                ["timestamp", "station", "role"]
+            )
+            for timestamp, group_df in ordered_staff_df.groupby("timestamp"):
+                staff_by_timestamp[timestamp] = [
+                    {
+                        "role": row["role"],
+                        "station": row["station"],
+                        "required_staff": int(row["required_staff"]),
+                    }
+                    for _, row in group_df.iterrows()
+                ]
+
+        hourly_rows = []
+        for _, row in forecast_df.sort_values("timestamp").iterrows():
+            timestamp = row["timestamp"]
+            hourly_rows.append(
+                {
+                    "timestamp": timestamp.isoformat(),
+                    "predicted_covers": int(row["predicted_covers"]),
+                    "staff": staff_by_timestamp.get(timestamp, []),
+                }
+            )
+        return hourly_rows
+
+    def build_ingredient_hourly_response(
+        self,
+        forecast_df: pd.DataFrame,
+        ingredient_hourly_df: pd.DataFrame,
+    ) -> list[dict]:
+        if forecast_df.empty:
+            return []
+
+        forecast_df = forecast_df.copy()
+        forecast_df["timestamp"] = pd.to_datetime(forecast_df["timestamp"])
+        ingredient_hourly_df = ingredient_hourly_df.copy()
+        ingredient_hourly_df["timestamp"] = pd.to_datetime(ingredient_hourly_df["timestamp"])
+
+        ingredients_by_timestamp = {}
+        if not ingredient_hourly_df.empty:
+            ordered_ingredient_df = ingredient_hourly_df.sort_values(
+                ["timestamp", "ingredient_name"]
+            )
+            for timestamp, group_df in ordered_ingredient_df.groupby("timestamp"):
+                ingredients_by_timestamp[timestamp] = [
+                    {
+                        "ingredient_id": row["ingredient_id"],
+                        "ingredient_name": row["ingredient_name"],
+                        "required_qty": float(round(row["required_qty"], 3)),
+                        "uom": row["uom"],
+                    }
+                    for _, row in group_df.iterrows()
+                ]
+
+        hourly_rows = []
+        for _, row in forecast_df.sort_values("timestamp").iterrows():
+            timestamp = row["timestamp"]
+            hourly_rows.append(
+                {
+                    "timestamp": timestamp.isoformat(),
+                    "predicted_covers": int(row["predicted_covers"]),
+                    "ingredients": ingredients_by_timestamp.get(timestamp, []),
+                }
+            )
+        return hourly_rows
+
+    def build_purchase_response(self, purchase_recommendation_df: pd.DataFrame) -> list[dict]:
+        if purchase_recommendation_df.empty:
+            return []
+
+        ordered_df = purchase_recommendation_df.sort_values(
+            ["recommended_order_qty", "ingredient_name"], ascending=[False, True]
+        )
+        rows = []
+        for _, row in ordered_df.iterrows():
+            rows.append(
+                {
+                    "ingredient_id": row["ingredient_id"],
+                    "ingredient_name": row["ingredient_name"],
+                    "recommended_order_qty": float(round(row["recommended_order_qty"], 3)),
+                    "uom": row["uom"],
+                    "lead_time_days": int(row["lead_time_days"]),
+                    "shelf_life_days": int(row["shelf_life_days"]),
+                }
+            )
+        return rows
+
+    def build_full_day_response(
+        self,
+        forecast_df: pd.DataFrame,
+        hourly_staff_plan_df: pd.DataFrame,
+        ingredient_hourly_df: pd.DataFrame,
+        purchase_recommendation_df: pd.DataFrame,
+    ) -> dict:
+        forecast_rows = self.build_forecast_response(forecast_df)
+        staff_rows = self.build_staff_response(forecast_df, hourly_staff_plan_df)
+        ingredient_rows = self.build_ingredient_hourly_response(
+            forecast_df, ingredient_hourly_df
+        )
+
+        staff_map = {row["timestamp"]: row["staff"] for row in staff_rows}
+        ingredient_map = {
+            row["timestamp"]: row["ingredients"] for row in ingredient_rows
+        }
+
+        hourly_plan = []
+        for forecast_row in forecast_rows:
+            timestamp = forecast_row["timestamp"]
+            hourly_plan.append(
+                {
+                    "timestamp": timestamp,
+                    "predicted_covers": forecast_row["predicted_covers"],
+                    "staff": staff_map.get(timestamp, []),
+                    "ingredients": ingredient_map.get(timestamp, []),
+                }
+            )
+
+        service_date = None
+        if hourly_plan:
+            service_date = hourly_plan[0]["timestamp"][:10]
+
+        return {
+            "date": service_date,
+            "hours": hourly_plan,
+            "purchase_recommendation": self.build_purchase_response(
+                purchase_recommendation_df
+            ),
+        }
 
     def load_model_on_startup(self) -> dict:
         self.logger.info("Loading forecasting model during server startup")
@@ -428,7 +618,13 @@ class RestaurantPlanningService:
             auto_retrain=auto_retrain,
         )
         planner_input_df = forecast_df[["timestamp", "predicted_covers"]].copy()
-        menu_demand_df, daily_ingredient_df, purchase_recommendation_df = (
+        menu_demand_df, ingredient_hourly_df = (
+            self.ingredient_planner.estimate_ingredient_demand(
+                planner_input_df,
+                external_features_df=normalized_df,
+            )
+        )
+        _, daily_ingredient_df, purchase_recommendation_df = (
             self.ingredient_planner.build_purchase_recommendation(
                 planner_input_df,
                 external_features_df=normalized_df,
@@ -442,6 +638,7 @@ class RestaurantPlanningService:
         return {
             "covers_forecast": forecast_df,
             "predicted_menu_demand": menu_demand_df,
+            "ingredient_hourly_demand": ingredient_hourly_df,
             "daily_ingredient_demand": daily_ingredient_df,
             "purchase_recommendation": purchase_recommendation_df,
         }
@@ -470,7 +667,13 @@ class RestaurantPlanningService:
         )
         shift_schedule_df = self.staff_planner.build_shift_schedule(hourly_staff_plan_df)
 
-        menu_demand_df, daily_ingredient_df, purchase_recommendation_df = (
+        menu_demand_df, ingredient_hourly_df = (
+            self.ingredient_planner.estimate_ingredient_demand(
+                ingredient_input_df,
+                external_features_df=normalized_df,
+            )
+        )
+        _, daily_ingredient_df, purchase_recommendation_df = (
             self.ingredient_planner.build_purchase_recommendation(
                 ingredient_input_df,
                 external_features_df=normalized_df,
@@ -487,6 +690,7 @@ class RestaurantPlanningService:
             "hourly_staff_plan": hourly_staff_plan_df,
             "shift_schedule": shift_schedule_df,
             "predicted_menu_demand": menu_demand_df,
+            "ingredient_hourly_demand": ingredient_hourly_df,
             "daily_ingredient_demand": daily_ingredient_df,
             "purchase_recommendation": purchase_recommendation_df,
         }
@@ -509,9 +713,15 @@ class RestaurantPlanningService:
 
         manager_feedback_columns = [
             "timestamp",
+            "predicted_covers",
+            "holiday_flag",
+            "event_flag",
+            "promotion_flag",
+            "rain_mm",
+            "temp_c",
+            "is_weekend",
+            "season",
             "manager_note",
-            "corrected_covers",
-            "manager_reason",
         ]
         manager_feedback_df = normalized_df.copy()
         for col in manager_feedback_columns:
@@ -519,9 +729,17 @@ class RestaurantPlanningService:
                 manager_feedback_df[col] = None
         manager_feedback_df = manager_feedback_df[manager_feedback_columns]
 
-        if manager_feedback_df["manager_note"].isna().all() and manager_feedback_df[
-            "corrected_covers"
-        ].isna().all():
+        if (
+            manager_feedback_df["manager_note"].isna().all()
+            and manager_feedback_df["predicted_covers"].isna().all()
+            and manager_feedback_df["holiday_flag"].isna().all()
+            and manager_feedback_df["event_flag"].isna().all()
+            and manager_feedback_df["promotion_flag"].isna().all()
+            and manager_feedback_df["rain_mm"].isna().all()
+            and manager_feedback_df["temp_c"].isna().all()
+            and manager_feedback_df["is_weekend"].isna().all()
+            and manager_feedback_df["season"].isna().all()
+        ):
             manager_feedback_df = None
 
         summary = self.feedback_loop.update_with_feedback(
@@ -558,7 +776,7 @@ class RestaurantPlanningService:
 
         wape = float(
             feedback_df["abs_error"].sum()
-            / feedback_df["effective_actual_covers"].clip(lower=1).sum()
+            / feedback_df["actual_covers"].clip(lower=1).sum()
         )
         return {
             "feedback_rows": int(len(feedback_df)),

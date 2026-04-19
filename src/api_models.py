@@ -46,9 +46,15 @@ class FeedbackEntryInput(BaseModel):
     actual_covers: float
     actual_reservations: Optional[float] = None
     actual_walk_ins: Optional[float] = None
+    predicted_covers: Optional[float] = None
+    holiday_flag: Optional[int] = None
+    event_flag: Optional[int] = None
+    promotion_flag: Optional[int] = None
+    rain_mm: Optional[float] = None
+    temp_c: Optional[float] = None
+    is_weekend: Optional[int] = None
+    season: Optional[str] = None
     manager_note: Optional[str] = None
-    corrected_covers: Optional[float] = None
-    manager_reason: Optional[str] = None
 
 
 class FeedbackRequest(BaseModel):

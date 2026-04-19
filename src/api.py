@@ -24,7 +24,7 @@ def _records_to_dataframe(records: list[dict]) -> pd.DataFrame:
 
 def create_app(app_config: AppConfig | None = None) -> FastAPI:
     config = app_config or load_app_config()
-    logger = get_logger("rps.api", config.api.log_level)
+    logger = get_logger(__name__, config.api.log_level)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -96,8 +96,7 @@ def create_app(app_config: AppConfig | None = None) -> FastAPI:
                 model_version=request_body.model_version,
             )
             return {
-                "count": len(result_df),
-                "predictions": dataframe_to_records(result_df),
+                "hours": service.build_forecast_response(result_df),
             }
         except Exception as exc:
             request.app.state.logger.exception("forecast_covers failed")
@@ -115,11 +114,10 @@ def create_app(app_config: AppConfig | None = None) -> FastAPI:
                 auto_retrain=request_body.auto_retrain,
             )
             return {
-                "count": len(result["hourly_staff_plan"]),
-                "covers_forecast": dataframe_to_records(result["covers_forecast"]),
-                "station_workload": dataframe_to_records(result["station_workload"]),
-                "hourly_staff_plan": dataframe_to_records(result["hourly_staff_plan"]),
-                "shift_schedule": dataframe_to_records(result["shift_schedule"]),
+                "hours": service.build_staff_response(
+                    result["covers_forecast"],
+                    result["hourly_staff_plan"],
+                ),
             }
         except Exception as exc:
             request.app.state.logger.exception("plan_staff failed")
@@ -137,15 +135,11 @@ def create_app(app_config: AppConfig | None = None) -> FastAPI:
                 auto_retrain=request_body.auto_retrain,
             )
             return {
-                "count": len(result["purchase_recommendation"]),
-                "covers_forecast": dataframe_to_records(result["covers_forecast"]),
-                "predicted_menu_demand": dataframe_to_records(
-                    result["predicted_menu_demand"]
+                "hours": service.build_ingredient_hourly_response(
+                    result["covers_forecast"],
+                    result["ingredient_hourly_demand"],
                 ),
-                "daily_ingredient_demand": dataframe_to_records(
-                    result["daily_ingredient_demand"]
-                ),
-                "purchase_recommendation": dataframe_to_records(
+                "purchase_recommendation": service.build_purchase_response(
                     result["purchase_recommendation"]
                 ),
             }
@@ -164,21 +158,12 @@ def create_app(app_config: AppConfig | None = None) -> FastAPI:
                 hours_df,
                 auto_retrain=request_body.auto_retrain,
             )
-            return {
-                "covers_forecast": dataframe_to_records(result["covers_forecast"]),
-                "station_workload": dataframe_to_records(result["station_workload"]),
-                "hourly_staff_plan": dataframe_to_records(result["hourly_staff_plan"]),
-                "shift_schedule": dataframe_to_records(result["shift_schedule"]),
-                "predicted_menu_demand": dataframe_to_records(
-                    result["predicted_menu_demand"]
-                ),
-                "daily_ingredient_demand": dataframe_to_records(
-                    result["daily_ingredient_demand"]
-                ),
-                "purchase_recommendation": dataframe_to_records(
-                    result["purchase_recommendation"]
-                ),
-            }
+            return service.build_full_day_response(
+                result["covers_forecast"],
+                result["hourly_staff_plan"],
+                result["ingredient_hourly_demand"],
+                result["purchase_recommendation"],
+            )
         except Exception as exc:
             request.app.state.logger.exception("plan_full failed")
             raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -3,6 +3,8 @@ import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
+from src.utils import clip_round_positive, get_logger, get_service_period
+
 
 class RestaurantForecaster:
     """
@@ -13,14 +15,28 @@ class RestaurantForecaster:
     - scenario testing support
     """
 
-    def __init__(self, feature_cols=None):
+    def __init__(
+        self,
+        feature_cols=None,
+        model_params=None,
+        early_stopping_rounds=60,
+        logger=None,
+    ):
         self.feature_cols = feature_cols or []
         self.model = None
+        self.model_params = model_params or {}
+        self.early_stopping_rounds = early_stopping_rounds
+        self.logger = logger or get_logger(__name__)
 
     def build_enhanced_features(self, df, covers_df=None, train_end_ts=None):
         df = df.copy()
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df.sort_values("timestamp").reset_index(drop=True)
+        self.logger.info(
+            "Building enhanced features for %s row(s); future_mode=%s.",
+            len(df),
+            covers_df is not None and train_end_ts is not None,
+        )
 
         # ----------------------------
         # TIME FEATURES
@@ -95,20 +111,6 @@ class RestaurantForecaster:
         # ----------------------------
         # SERVICE PERIOD
         # ----------------------------
-        def get_service_period(hour):
-            if hour < 8:
-                return "pre_service"
-            elif 8 <= hour <= 11:
-                return "breakfast"
-            elif 12 <= hour <= 15:
-                return "lunch"
-            elif 16 <= hour <= 18:
-                return "afternoon"
-            elif 19 <= hour <= 22:
-                return "dinner"
-            else:
-                return "late_night"
-
         df["service_period"] = df["hour"].apply(get_service_period)
 
         # ----------------------------
@@ -205,6 +207,10 @@ class RestaurantForecaster:
         # LAGS / ROLLING
         # ----------------------------
         if covers_df is not None and train_end_ts is not None:
+            self.logger.info(
+                "Preparing future lag features using history through %s.",
+                pd.Timestamp(train_end_ts),
+            )
             lag_features = self._get_scenario_aware_lags(df, covers_df, train_end_ts)
             for col, val in lag_features.items():
                 df[col] = val
@@ -297,15 +303,52 @@ class RestaurantForecaster:
             "holiday_name",
             "event_name",
         }
+        pruned_feature_columns = {
+            "day_of_month",
+            "month",
+            "week_of_year",
+            "is_friday",
+            "is_month_start",
+            "is_month_end",
+            "holiday_x_hour",
+            "event_x_hour",
+            "promo_x_hour",
+            "rain_x_hour",
+            "temp_x_hour",
+            "period_pre_service",
+            "period_breakfast",
+            "period_lunch",
+            "period_afternoon",
+            "period_dinner",
+            "period_late_night",
+            "covers_lag_prev_same_period_weektype",
+            "covers_lag_prev_same_period_season",
+        }
 
-        feature_cols = [c for c in full_enhanced.columns if c not in exclude]
-        full_enhanced = full_enhanced.dropna(subset=feature_cols).reset_index(drop=True)
+        base_feature_cols = [c for c in full_enhanced.columns if c not in exclude]
+        full_enhanced = full_enhanced.dropna(subset=base_feature_cols).reset_index(drop=True)
+
+        feature_cols = [
+            c
+            for c in base_feature_cols
+            if c not in pruned_feature_columns
+        ]
+        self.logger.info(
+            "Prepared model frame with %s usable row(s) and %s feature(s).",
+            len(full_enhanced),
+            len(feature_cols),
+        )
         return full_enhanced, feature_cols
 
     def prepare_future_frame(self, future_df, covers_history_df):
         covers_history_df = covers_history_df.copy()
         covers_history_df["timestamp"] = pd.to_datetime(covers_history_df["timestamp"])
         train_end_ts = covers_history_df["timestamp"].max()
+        self.logger.info(
+            "Preparing future frame for %s row(s) against %s historical row(s).",
+            len(future_df),
+            len(covers_history_df),
+        )
 
         future_features = self.build_enhanced_features(
             future_df.copy(),
@@ -325,48 +368,209 @@ class RestaurantForecaster:
         )
         future_features = future_features[ordered_cols]
         future_features = future_features.fillna(0)
+        self.logger.info(
+            "Future frame ready with %s feature column(s).",
+            len(self.feature_cols),
+        )
         return future_features
 
     def _get_scenario_aware_lags(self, df, covers_df, train_end_ts):
-        row = df.iloc[0]
-        mask = pd.Series(True, index=covers_df.index)
+        history_df = covers_df[covers_df["timestamp"] <= train_end_ts].copy()
+        history_df["timestamp"] = pd.to_datetime(history_df["timestamp"])
+        history_df = history_df.sort_values("timestamp").reset_index(drop=True)
+        self.logger.info(
+            "Building scenario-aware lag features for %s forecast row(s) from %s history row(s).",
+            len(df),
+            len(history_df),
+        )
 
-        if "holiday_flag" in row and row["holiday_flag"]:
-            mask &= covers_df["holiday_flag"] == 1
-        if "event_flag" in row and row["event_flag"]:
-            mask &= covers_df["event_flag"] == 1
-        if "promotion_flag" in row and row["promotion_flag"]:
-            mask &= covers_df["promotion_flag"] == 1
-        if "rain_mm" in row and row["rain_mm"] >= 15:
-            mask &= covers_df["rain_mm"] >= 15
-        if "temp_c" in row and row["temp_c"] >= 35:
-            mask &= covers_df["temp_c"] >= 35
+        if history_df.empty:
+            zeros = np.zeros(len(df), dtype=float)
+            return {
+                "covers_lag_1h": zeros.copy(),
+                "covers_lag_1d": zeros.copy(),
+                "covers_lag_7d": zeros.copy(),
+                "covers_lag_1w_same_hour": zeros.copy(),
+                "covers_lag_1d_same_period": zeros.copy(),
+                "covers_roll_mean_3h": zeros.copy(),
+                "covers_roll_mean_6h": zeros.copy(),
+                "covers_roll_mean_1d": zeros.copy(),
+                "covers_roll_mean_3d": zeros.copy(),
+                "covers_roll_mean_7d": zeros.copy(),
+                "covers_roll_std_1d": zeros.copy(),
+                "covers_roll_std_3d": zeros.copy(),
+                "covers_roll_max_1d": zeros.copy(),
+                "covers_roll_min_1d": zeros.copy(),
+                "covers_lag_prev_same_period_weektype": zeros.copy(),
+                "covers_lag_prev_same_period_season": zeros.copy(),
+                "covers_volatility_3d": zeros.copy(),
+            }
 
-        subset = covers_df[mask & (covers_df["timestamp"] <= train_end_ts)].copy()
-        if len(subset) < 50:
-            subset = covers_df[covers_df["timestamp"] <= train_end_ts].copy()
+        history_df["service_period"] = history_df["timestamp"].dt.hour.apply(get_service_period)
+        history_df["hour"] = history_df["timestamp"].dt.hour
+        history_df["is_weekend"] = history_df.get("is_weekend", 0).fillna(0).astype(int)
 
-        subset = subset.sort_values("timestamp").reset_index(drop=True)
+        def _scenario_subset(row: pd.Series, prior_history_df: pd.DataFrame) -> pd.DataFrame:
+            if prior_history_df.empty:
+                return history_df
 
-        return {
-            "covers_lag_1h": subset["covers"].median(),
-            "covers_lag_1d": subset["covers"].median(),
-            "covers_lag_7d": subset["covers"].median(),
-            "covers_lag_1w_same_hour": subset["covers"].median(),
-            "covers_lag_1d_same_period": subset["covers"].median(),
-            "covers_roll_mean_3h": subset["covers"].median(),
-            "covers_roll_mean_6h": subset["covers"].median(),
-            "covers_roll_mean_1d": subset["covers"].median(),
-            "covers_roll_mean_3d": subset["covers"].median(),
-            "covers_roll_mean_7d": subset["covers"].median(),
-            "covers_roll_std_1d": subset["covers"].std(),
-            "covers_roll_std_3d": subset["covers"].std(),
-            "covers_roll_max_1d": float(np.nanpercentile(subset["covers"], 75)),
-            "covers_roll_min_1d": float(np.nanpercentile(subset["covers"], 25)),
-            "covers_lag_prev_same_period_weektype": subset["covers"].median(),
-            "covers_lag_prev_same_period_season": subset["covers"].median(),
-            "covers_volatility_3d": 0.15,
+            mask = pd.Series(True, index=prior_history_df.index)
+
+            if "holiday_flag" in row and row["holiday_flag"]:
+                mask &= prior_history_df.get("holiday_flag", 0).fillna(0) == 1
+            if "event_flag" in row and row["event_flag"]:
+                mask &= prior_history_df.get("event_flag", 0).fillna(0) == 1
+            if "promotion_flag" in row and row["promotion_flag"]:
+                mask &= prior_history_df.get("promotion_flag", 0).fillna(0) == 1
+            if "rain_mm" in row and row["rain_mm"] >= 15:
+                mask &= prior_history_df.get("rain_mm", 0).fillna(0) >= 15
+            elif "rain_mm" in row and row["rain_mm"] > 0:
+                mask &= prior_history_df.get("rain_mm", 0).fillna(0) > 0
+            if "temp_c" in row and row["temp_c"] >= 35:
+                mask &= prior_history_df.get("temp_c", 0).fillna(0) >= 35
+            if "is_weekend" in row:
+                mask &= prior_history_df["is_weekend"] == int(row["is_weekend"])
+
+            subset = prior_history_df[mask].copy()
+            if len(subset) < 24:
+                subset = prior_history_df.copy()
+
+            return subset.sort_values("timestamp").reset_index(drop=True)
+
+        def _latest_cover(frame: pd.DataFrame) -> float | None:
+            if frame.empty:
+                return None
+            return float(frame.iloc[-1]["covers"])
+
+        def _cover_at_timestamp(frame: pd.DataFrame, timestamp: pd.Timestamp) -> float | None:
+            match_df = frame[frame["timestamp"] == timestamp]
+            return _latest_cover(match_df)
+
+        lag_feature_map = {
+            "covers_lag_1h": [],
+            "covers_lag_1d": [],
+            "covers_lag_7d": [],
+            "covers_lag_1w_same_hour": [],
+            "covers_lag_1d_same_period": [],
+            "covers_roll_mean_3h": [],
+            "covers_roll_mean_6h": [],
+            "covers_roll_mean_1d": [],
+            "covers_roll_mean_3d": [],
+            "covers_roll_mean_7d": [],
+            "covers_roll_std_1d": [],
+            "covers_roll_std_3d": [],
+            "covers_roll_max_1d": [],
+            "covers_roll_min_1d": [],
+            "covers_lag_prev_same_period_weektype": [],
+            "covers_lag_prev_same_period_season": [],
+            "covers_volatility_3d": [],
         }
+
+        for _, row in df.iterrows():
+            row_ts = pd.Timestamp(row["timestamp"])
+            prior_history_df = history_df[history_df["timestamp"] < row_ts].copy()
+            if prior_history_df.empty:
+                prior_history_df = history_df.copy()
+
+            scenario_df = _scenario_subset(row, prior_history_df)
+            scenario_median = float(scenario_df["covers"].median())
+            scenario_std = float(scenario_df["covers"].std()) if len(scenario_df) > 1 else 0.0
+
+            same_hour_df = prior_history_df[prior_history_df["hour"] == row["hour"]]
+            same_period_df = prior_history_df[
+                prior_history_df["service_period"] == row["service_period"]
+            ]
+            same_period_weektype_df = prior_history_df[
+                (prior_history_df["service_period"] == row["service_period"])
+                & (prior_history_df["is_weekend"] == int(row.get("is_weekend", 0)))
+            ]
+            same_period_season_df = prior_history_df[
+                prior_history_df["service_period"] == row["service_period"]
+            ]
+            if "season" in row and "season" in prior_history_df.columns:
+                same_period_season_df = same_period_season_df[
+                    same_period_season_df["season"] == row["season"]
+                ]
+
+            lag_1h = _latest_cover(prior_history_df)
+            lag_1d = _cover_at_timestamp(prior_history_df, row_ts - pd.Timedelta(days=1))
+            lag_7d = _cover_at_timestamp(prior_history_df, row_ts - pd.Timedelta(days=7))
+            lag_1w_same_hour = lag_7d if lag_7d is not None else _latest_cover(same_hour_df)
+
+            if lag_1d is None:
+                lag_1d = _latest_cover(same_hour_df)
+            if lag_7d is None:
+                lag_7d = _latest_cover(same_hour_df)
+
+            roll_3h = prior_history_df["covers"].tail(3)
+            roll_6h = prior_history_df["covers"].tail(6)
+            roll_1d = prior_history_df["covers"].tail(15)
+            roll_3d = prior_history_df["covers"].tail(45)
+            roll_7d = prior_history_df["covers"].tail(105)
+
+            roll_mean_3d = float(roll_3d.mean()) if len(roll_3d) > 0 else scenario_median
+            roll_std_3d = float(roll_3d.std()) if len(roll_3d) > 1 else scenario_std
+
+            lag_feature_map["covers_lag_1h"].append(
+                lag_1h if lag_1h is not None else scenario_median
+            )
+            lag_feature_map["covers_lag_1d"].append(
+                lag_1d if lag_1d is not None else scenario_median
+            )
+            lag_feature_map["covers_lag_7d"].append(
+                lag_7d if lag_7d is not None else scenario_median
+            )
+            lag_feature_map["covers_lag_1w_same_hour"].append(
+                lag_1w_same_hour if lag_1w_same_hour is not None else scenario_median
+            )
+            lag_feature_map["covers_lag_1d_same_period"].append(
+                _latest_cover(same_period_df) if not same_period_df.empty else scenario_median
+            )
+            lag_feature_map["covers_roll_mean_3h"].append(
+                float(roll_3h.mean()) if len(roll_3h) > 0 else scenario_median
+            )
+            lag_feature_map["covers_roll_mean_6h"].append(
+                float(roll_6h.mean()) if len(roll_6h) > 0 else scenario_median
+            )
+            lag_feature_map["covers_roll_mean_1d"].append(
+                float(roll_1d.mean()) if len(roll_1d) > 0 else scenario_median
+            )
+            lag_feature_map["covers_roll_mean_3d"].append(roll_mean_3d)
+            lag_feature_map["covers_roll_mean_7d"].append(
+                float(roll_7d.mean()) if len(roll_7d) > 0 else scenario_median
+            )
+            lag_feature_map["covers_roll_std_1d"].append(
+                float(roll_1d.std()) if len(roll_1d) > 1 else scenario_std
+            )
+            lag_feature_map["covers_roll_std_3d"].append(roll_std_3d)
+            lag_feature_map["covers_roll_max_1d"].append(
+                float(roll_1d.max()) if len(roll_1d) > 0 else scenario_median
+            )
+            lag_feature_map["covers_roll_min_1d"].append(
+                float(roll_1d.min()) if len(roll_1d) > 0 else scenario_median
+            )
+            lag_feature_map["covers_lag_prev_same_period_weektype"].append(
+                _latest_cover(same_period_weektype_df)
+                if not same_period_weektype_df.empty
+                else scenario_median
+            )
+            lag_feature_map["covers_lag_prev_same_period_season"].append(
+                _latest_cover(same_period_season_df)
+                if not same_period_season_df.empty
+                else scenario_median
+            )
+            lag_feature_map["covers_volatility_3d"].append(
+                roll_std_3d / (roll_mean_3d + 1)
+                if roll_mean_3d >= 0
+                else 0.15
+            )
+
+        self.logger.info(
+            "Scenario-aware lag features prepared from %s through %s.",
+            history_df["timestamp"].min(),
+            history_df["timestamp"].max(),
+        )
+        return {col: np.asarray(values, dtype=float) for col, values in lag_feature_map.items()}
 
     def train(
         self,
@@ -382,22 +586,30 @@ class RestaurantForecaster:
         use_early_stopping = (
             X_eval is not None and y_eval is not None and len(X_eval) > 0
         )
-        self.model = XGBRegressor(
-            n_estimators=800,
-            max_depth=4,
-            learning_rate=0.025,
-            subsample=0.9,
-            colsample_bytree=0.9,
-            min_child_weight=2,
-            gamma=0.05,
-            reg_alpha=0.25,
-            reg_lambda=5.0,
-            tree_method="hist",
-            objective="reg:squarederror",
-            random_state=42,
-            n_jobs=-1,
-            early_stopping_rounds=50 if use_early_stopping else None,
+        model_params = {
+            "n_estimators": 800,
+            "max_depth": 4,
+            "learning_rate": 0.025,
+            "subsample": 0.9,
+            "colsample_bytree": 0.9,
+            "min_child_weight": 2,
+            "gamma": 0.05,
+            "reg_alpha": 0.25,
+            "reg_lambda": 5.0,
+            "tree_method": "hist",
+            "objective": "reg:squarederror",
+            "random_state": 42,
+            "n_jobs": 1,
+            "early_stopping_rounds": self.early_stopping_rounds if use_early_stopping else None,
+        }
+        model_params.update(self.model_params)
+        self.logger.info(
+            "Training forecaster on %s row(s) with %s feature(s); eval_rows=%s.",
+            len(X_train),
+            len(X_train.columns),
+            len(X_eval) if X_eval is not None else 0,
         )
+        self.model = XGBRegressor(**model_params)
         fit_kwargs = {
             "X": X_train,
             "y": y_train_log,
@@ -410,11 +622,14 @@ class RestaurantForecaster:
                 fit_kwargs["sample_weight_eval_set"] = [eval_sample_weight]
 
         self.model.fit(**fit_kwargs)
+        self.logger.info("Forecaster training finished.")
 
     def predict(self, X):
+        self.logger.info("Generating predictions for %s row(s).", len(X))
         pred_log = self.model.predict(X)
-        pred = np.expm1(pred_log).clip(min=0)
-        return np.rint(pred).astype(int)
+        pred = np.expm1(pred_log)
+        pred = np.clip(pred, 0, None)
+        return clip_round_positive(pred)
 
     def evaluate(self, X_test, y_test):
         pred = self.predict(X_test)
@@ -426,13 +641,22 @@ class RestaurantForecaster:
             np.where(np.asarray(y_test) > 0, np.abs(error) / np.asarray(y_test), 0.0)
         )
         bias = float(np.mean(error))
-        return {
+        metrics = {
             "mae": mae,
             "rmse": rmse,
             "wape": wape,
             "mape": float(mape),
             "bias": bias,
         }
+        self.logger.info(
+            "Evaluation complete: mae=%.4f rmse=%.4f wape=%.4f mape=%.4f bias=%.4f.",
+            metrics["mae"],
+            metrics["rmse"],
+            metrics["wape"],
+            metrics["mape"],
+            metrics["bias"],
+        )
+        return metrics
 
 
 def run_single_xgb_forecast(covers_df, holdout_hours=7 * 15):

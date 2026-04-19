@@ -17,7 +17,7 @@ def get_logger(name: str, level: str = "INFO") -> logging.Logger:
     logger.setLevel(level.upper())
     handler = logging.StreamHandler()
     formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+        "%(levelname)s :: %(asctime)s | %(name)s | %(message)s"
     )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -37,6 +37,21 @@ def get_service_period(hour: int) -> str:
     if 19 <= hour <= 22:
         return "dinner"
     return "late_night"
+
+
+def clip_round_positive(values: Any) -> np.ndarray:
+    array = np.asarray(values, dtype=float)
+    return np.rint(np.clip(array, a_min=0, a_max=None)).astype(int)
+
+
+def safe_ratio(numerator: Any, denominator: Any, default: float = 0.0) -> np.ndarray:
+    numerator_array = np.asarray(numerator, dtype=float)
+    denominator_array = np.asarray(denominator, dtype=float)
+    return np.where(
+        denominator_array != 0,
+        numerator_array / denominator_array,
+        default,
+    )
 
 
 def ensure_timestamp(df: pd.DataFrame, column: str = "timestamp") -> pd.DataFrame:

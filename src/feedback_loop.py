@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from src.forecaster import RestaurantForecaster
+from src.utils import get_logger
 
 
 @dataclass
@@ -28,6 +29,8 @@ class FeedbackLoopConfig:
     startup_max_test_fraction: float = 0.18
     startup_recent_fraction: float = 0.40
     startup_random_state: int = 42
+    xgb_params: Optional[dict] = None
+    early_stopping_rounds: int = 60
 
 
 class ForecastFeedbackLoop:
@@ -68,9 +71,15 @@ class ForecastFeedbackLoop:
     ]
     MANAGER_FEEDBACK_COLUMNS = [
         "timestamp",
+        "predicted_covers",
+        "holiday_flag",
+        "event_flag",
+        "promotion_flag",
+        "rain_mm",
+        "temp_c",
+        "is_weekend",
+        "season",
         "manager_note",
-        "corrected_covers",
-        "manager_reason",
         "manager_note_tags",
         "ingested_at",
     ]
@@ -81,6 +90,7 @@ class ForecastFeedbackLoop:
         base_covers_df: Optional[pd.DataFrame] = None,
     ):
         self.config = config or FeedbackLoopConfig()
+        self.logger = get_logger(__name__)
         self.data_dir = Path(self.config.data_dir)
         self.feedback_dir = Path(self.config.feedback_dir)
         self.feedback_dir.mkdir(parents=True, exist_ok=True)
@@ -90,7 +100,10 @@ class ForecastFeedbackLoop:
             if base_covers_df is None
             else self._prepare_base_covers_df(base_covers_df)
         )
-        self.forecaster = RestaurantForecaster()
+        self.forecaster = RestaurantForecaster(
+            model_params=self.config.xgb_params or {},
+            early_stopping_rounds=self.config.early_stopping_rounds,
+        )
         self.feature_cols: list[str] = []
         self.training_history_df: Optional[pd.DataFrame] = None
         self.correction_table_df: Optional[pd.DataFrame] = None
@@ -187,6 +200,11 @@ class ForecastFeedbackLoop:
         return self._read_log(self.manager_feedback_path, self.MANAGER_FEEDBACK_COLUMNS)
 
     def log_predictions(self, predictions_df: pd.DataFrame, model_version: str) -> pd.DataFrame:
+        self.logger.info(
+            "Recording %s prediction row(s) for model version '%s'.",
+            len(predictions_df),
+            model_version,
+        )
         log_df = predictions_df.copy()
         log_df["timestamp"] = pd.to_datetime(log_df["timestamp"])
 
@@ -220,6 +238,7 @@ class ForecastFeedbackLoop:
         )
 
     def log_actuals(self, actuals_df: pd.DataFrame) -> pd.DataFrame:
+        self.logger.info("Recording %s actual row(s).", len(actuals_df))
         log_df = actuals_df.copy()
         log_df["timestamp"] = pd.to_datetime(log_df["timestamp"])
 
@@ -239,15 +258,24 @@ class ForecastFeedbackLoop:
         )
 
     def log_manager_feedback(self, manager_feedback_df: pd.DataFrame) -> pd.DataFrame:
+        self.logger.info("Recording %s manager feedback row(s).", len(manager_feedback_df))
         log_df = manager_feedback_df.copy()
         log_df["timestamp"] = pd.to_datetime(log_df["timestamp"])
 
         if "manager_note" not in log_df.columns:
             log_df["manager_note"] = ""
-        if "corrected_covers" not in log_df.columns:
-            log_df["corrected_covers"] = np.nan
-        if "manager_reason" not in log_df.columns:
-            log_df["manager_reason"] = np.nan
+        for col in [
+            "predicted_covers",
+            "holiday_flag",
+            "event_flag",
+            "promotion_flag",
+            "rain_mm",
+            "temp_c",
+            "is_weekend",
+            "season",
+        ]:
+            if col not in log_df.columns:
+                log_df[col] = np.nan
 
         log_df["manager_note_tags"] = log_df["manager_note"].apply(self._tag_manager_note)
         log_df["ingested_at"] = pd.Timestamp.utcnow().tz_localize(None)
@@ -274,10 +302,23 @@ class ForecastFeedbackLoop:
         )
         feedback_df = feedback_df.merge(
             manager_feedback_df[
-                ["timestamp", "manager_note", "corrected_covers", "manager_reason", "manager_note_tags"]
+                [
+                    "timestamp",
+                    "predicted_covers",
+                    "holiday_flag",
+                    "event_flag",
+                    "promotion_flag",
+                    "rain_mm",
+                    "temp_c",
+                    "is_weekend",
+                    "season",
+                    "manager_note",
+                    "manager_note_tags",
+                ]
             ],
             on="timestamp",
             how="left",
+            suffixes=("", "_feedback"),
         )
 
         context_cols = [
@@ -294,14 +335,22 @@ class ForecastFeedbackLoop:
         feedback_df = feedback_df.merge(base_context_df, on="timestamp", how="left", suffixes=("", "_base"))
 
         for col in ["promotion_flag", "holiday_flag", "event_flag", "rain_mm", "temp_c", "is_weekend", "season"]:
+            feedback_col = f"{col}_feedback"
+            if feedback_col in feedback_df.columns:
+                feedback_df[col] = feedback_df[feedback_col].fillna(feedback_df[col])
+                feedback_df = feedback_df.drop(columns=[feedback_col])
             base_col = f"{col}_base"
             if base_col in feedback_df.columns:
                 feedback_df[col] = feedback_df[col].fillna(feedback_df[base_col])
                 feedback_df = feedback_df.drop(columns=[base_col])
 
-        feedback_df["effective_actual_covers"] = feedback_df["corrected_covers"].fillna(
-            feedback_df["actual_covers"]
-        )
+        if "predicted_covers_feedback" in feedback_df.columns:
+            feedback_df["predicted_covers"] = feedback_df["predicted_covers_feedback"].fillna(
+                feedback_df["predicted_covers"]
+            )
+            feedback_df = feedback_df.drop(columns=["predicted_covers_feedback"])
+
+        feedback_df["effective_actual_covers"] = feedback_df["actual_covers"]
         feedback_df["error"] = (
             feedback_df["predicted_covers"] - feedback_df["effective_actual_covers"]
         )
@@ -337,8 +386,12 @@ class ForecastFeedbackLoop:
         feedback_df["heavy_rain_flag"] = (feedback_df["rain_mm"].fillna(0) >= 15).astype(int)
         feedback_df["hot_weather_flag"] = (feedback_df["temp_c"].fillna(0) >= 35).astype(int)
         feedback_df["manager_note_tags"] = feedback_df["manager_note_tags"].fillna("")
-
-        return feedback_df.sort_values("timestamp").reset_index(drop=True)
+        feedback_df = feedback_df.sort_values("timestamp").reset_index(drop=True)
+        self.logger.info(
+            "Built feedback frame with %s joined row(s).",
+            len(feedback_df),
+        )
+        return feedback_df
 
     def _scenario_rules(self, df: pd.DataFrame) -> dict[str, pd.Series]:
         note_tags = df.get("manager_note_tags", pd.Series("", index=df.index)).fillna("")
@@ -428,6 +481,12 @@ class ForecastFeedbackLoop:
             ["is_actionable", "observations", "scenario"],
             ascending=[False, False, True],
         )
+        actionable_count = int((correction_table_df["is_actionable"] == 1).sum()) if not correction_table_df.empty else 0
+        self.logger.info(
+            "Computed %s scenario correction row(s); actionable=%s.",
+            len(correction_table_df),
+            actionable_count,
+        )
         correction_table_df.to_csv(self.scenario_corrections_path, index=False)
         self.correction_table_df = correction_table_df
         return correction_table_df
@@ -475,6 +534,9 @@ class ForecastFeedbackLoop:
         if correction_table_df is None:
             correction_table_df = self.compute_scenario_corrections()
         if correction_table_df.empty:
+            self.logger.info(
+                "No actionable scenario corrections available; keeping raw predictions unchanged."
+            )
             corrected_df["correction_multiplier"] = 1.0
             corrected_df["applied_scenarios"] = ""
             corrected_df["predicted_covers"] = (
@@ -529,6 +591,12 @@ class ForecastFeedbackLoop:
         corrected_df["raw_predicted_covers"] = (
             corrected_df["raw_predicted_covers"].clip(lower=0).round().astype(int)
         )
+        changed_rows = int((corrected_df["correction_multiplier"] != 1.0).sum())
+        self.logger.info(
+            "Applied scenario corrections to %s row(s); adjusted_rows=%s.",
+            len(corrected_df),
+            changed_rows,
+        )
 
         return corrected_df
 
@@ -536,6 +604,9 @@ class ForecastFeedbackLoop:
         training_history_df = self.base_covers_df.copy()
         feedback_df = self.build_feedback_frame()
         if feedback_df.empty:
+            self.logger.info(
+                "No feedback history yet; training will use the base historical dataset only."
+            )
             return training_history_df
 
         feedback_history_df = feedback_df.copy()
@@ -551,6 +622,10 @@ class ForecastFeedbackLoop:
             [training_history_df, feedback_history_df], ignore_index=True
         )
         training_history_df = self._prepare_base_covers_df(training_history_df)
+        self.logger.info(
+            "Training history prepared with %s row(s), including feedback-enriched actuals.",
+            len(training_history_df),
+        )
         return training_history_df
 
     def _build_sample_weights(
@@ -559,33 +634,39 @@ class ForecastFeedbackLoop:
         feedback_df: pd.DataFrame,
         correction_table_df: pd.DataFrame,
     ) -> pd.Series:
-        weights = pd.Series(1.0, index=model_frame_df.index)
+        model_frame_df = model_frame_df.reset_index(drop=True).copy()
+        weights = pd.Series(1.0, index=model_frame_df.index, dtype=float)
         if model_frame_df.empty:
             return weights
 
         if not feedback_df.empty:
             feedback_features_df = feedback_df[
                 ["timestamp", "abs_error", "manager_note", "manager_note_tags"]
-            ].copy()
+            ].copy().drop_duplicates(subset=["timestamp"], keep="last")
             model_frame_df = model_frame_df.merge(
                 feedback_features_df,
                 on="timestamp",
                 how="left",
-            )
+            ).reset_index(drop=True)
 
-            weights.loc[model_frame_df["abs_error"].notna()] *= self.config.recent_feedback_weight
+            recent_mask = model_frame_df["abs_error"].notna().to_numpy()
+            weights.loc[recent_mask] *= self.config.recent_feedback_weight
 
             if model_frame_df["abs_error"].notna().any():
                 error_threshold = float(
                     np.nanpercentile(model_frame_df["abs_error"].dropna(), 75)
                 )
-                weights.loc[model_frame_df["abs_error"] >= error_threshold] *= (
+                high_error_mask = (
+                    model_frame_df["abs_error"] >= error_threshold
+                ).fillna(False).to_numpy()
+                weights.loc[high_error_mask] *= (
                     self.config.high_error_weight
                 )
 
-            weights.loc[
+            manager_note_mask = (
                 model_frame_df["manager_note"].fillna("").str.len() > 0
-            ] *= self.config.manager_feedback_weight
+            ).to_numpy()
+            weights.loc[manager_note_mask] *= self.config.manager_feedback_weight
 
         if not correction_table_df.empty:
             actionable_df = correction_table_df[
@@ -613,7 +694,8 @@ class ForecastFeedbackLoop:
                 adjustment_strength = min(
                     0.75, abs(float(row["correction_factor"]) - 1.0) * 3.0
                 )
-                weights.loc[scenario_masks[scenario]] *= 1 + adjustment_strength
+                scenario_mask = scenario_masks[scenario].fillna(False).to_numpy()
+                weights.loc[scenario_mask] *= 1 + adjustment_strength
 
         return weights.clip(lower=1.0, upper=self.config.max_sample_weight)
 
@@ -922,6 +1004,11 @@ class ForecastFeedbackLoop:
         holdout_hours: int = 0,
         split_strategy: str = "tail",
     ) -> dict:
+        self.logger.info(
+            "Starting feedback-aware training run; split_strategy=%s holdout_hours=%s.",
+            split_strategy,
+            holdout_hours,
+        )
         feedback_df = self.build_feedback_frame()
         correction_table_df = self.compute_scenario_corrections(feedback_df)
         training_history_df = self._build_training_history()
@@ -965,6 +1052,12 @@ class ForecastFeedbackLoop:
                 "group_counts": {},
             }
 
+        self.logger.info(
+            "Training split ready: train_rows=%s test_rows=%s strategy=%s.",
+            len(train_df),
+            len(test_df),
+            split_summary["split_strategy"],
+        )
         sample_weights = self._build_sample_weights(train_df.copy(), feedback_df, correction_table_df)
 
         X_train = train_df[feature_cols]
@@ -997,6 +1090,10 @@ class ForecastFeedbackLoop:
             scenario_error_summary_df = self._build_scenario_error_summary(
                 prediction_summary_df
             )
+            self.logger.info(
+                "Validation summary generated for %s held-out row(s).",
+                len(test_df),
+            )
 
         self.training_history_df = training_history_df
         self.correction_table_df = correction_table_df
@@ -1023,6 +1120,10 @@ class ForecastFeedbackLoop:
         pd.concat([existing_history_df, retraining_row], ignore_index=True).to_csv(
             self.retraining_history_path,
             index=False,
+        )
+        self.logger.info(
+            "Training run complete. Metrics captured: %s.",
+            metrics if metrics else "no holdout metrics",
         )
 
         return {
@@ -1058,25 +1159,69 @@ class ForecastFeedbackLoop:
         auto_retrain: bool = True,
     ) -> pd.DataFrame:
         if self.training_history_df is None or self.forecaster.model is None:
+            self.logger.info("Forecast requested without a warm model; training now.")
             self.train_feedback_aware_model(holdout_hours=0)
         elif auto_retrain and self.should_retrain():
+            self.logger.info("Recent feedback crossed the retrain threshold; refreshing the model before forecasting.")
             self.train_feedback_aware_model(holdout_hours=0)
 
         future_context_df = future_context_df.copy()
         future_context_df["timestamp"] = pd.to_datetime(future_context_df["timestamp"])
-        future_feature_df = self.forecaster.prepare_future_frame(
-            future_context_df,
-            self.training_history_df,
+        future_context_df = future_context_df.sort_values("timestamp").reset_index(drop=True)
+        self.logger.info(
+            "Starting recursive forecast for %s future row(s) under model version '%s'.",
+            len(future_context_df),
+            model_version,
         )
 
-        raw_pred = self.forecaster.predict(future_feature_df[self.feature_cols])
+        history_df = self.training_history_df.copy()
+        history_df["timestamp"] = pd.to_datetime(history_df["timestamp"])
+        history_df = history_df.sort_values("timestamp").reset_index(drop=True)
 
-        predictions_df = future_context_df.copy()
-        predictions_df["raw_predicted_covers"] = raw_pred
-        predictions_df["predicted_covers"] = raw_pred
+        prediction_rows: list[dict] = []
+        for _, future_row in future_context_df.iterrows():
+            single_row_df = pd.DataFrame([future_row.to_dict()])
+            future_feature_df = self.forecaster.prepare_future_frame(
+                single_row_df,
+                history_df,
+            )
+            raw_pred_value = int(
+                self.forecaster.predict(future_feature_df[self.feature_cols])[0]
+            )
+            self.logger.info(
+                "Forecasted %s -> raw_predicted_covers=%s using %s historical row(s).",
+                pd.Timestamp(future_row["timestamp"]),
+                raw_pred_value,
+                len(history_df),
+            )
+
+            prediction_row = future_row.to_dict()
+            prediction_row["raw_predicted_covers"] = raw_pred_value
+            prediction_row["predicted_covers"] = raw_pred_value
+            prediction_rows.append(prediction_row)
+
+            history_row = {}
+            for col in history_df.columns:
+                if col == "covers":
+                    history_row[col] = raw_pred_value
+                elif col in prediction_row:
+                    history_row[col] = prediction_row[col]
+                else:
+                    history_row[col] = np.nan
+
+            history_df = pd.concat(
+                [history_df, pd.DataFrame([history_row])],
+                ignore_index=True,
+            ).sort_values("timestamp").reset_index(drop=True)
+
+        predictions_df = pd.DataFrame(prediction_rows)
 
         predictions_df = self.apply_scenario_corrections(predictions_df, self.correction_table_df)
         self.log_predictions(predictions_df, model_version=model_version)
+        self.logger.info(
+            "Forecast run finished with %s output row(s).",
+            len(predictions_df),
+        )
         return predictions_df.sort_values("timestamp").reset_index(drop=True)
 
     def update_with_feedback(
@@ -1087,6 +1232,33 @@ class ForecastFeedbackLoop:
     ) -> dict:
         self.log_actuals(actuals_df)
         if manager_feedback_df is not None and not manager_feedback_df.empty:
+            if manager_feedback_df["predicted_covers"].notna().any():
+                supplemental_predictions_df = manager_feedback_df[
+                    [
+                        "timestamp",
+                        "predicted_covers",
+                        "promotion_flag",
+                        "holiday_flag",
+                        "event_flag",
+                        "rain_mm",
+                        "temp_c",
+                        "is_weekend",
+                        "season",
+                    ]
+                ].copy()
+                supplemental_predictions_df = supplemental_predictions_df[
+                    supplemental_predictions_df["predicted_covers"].notna()
+                ].copy()
+                if not supplemental_predictions_df.empty:
+                    supplemental_predictions_df["raw_predicted_covers"] = (
+                        supplemental_predictions_df["predicted_covers"]
+                    )
+                    supplemental_predictions_df["correction_multiplier"] = 1.0
+                    supplemental_predictions_df["applied_scenarios"] = ""
+                    self.log_predictions(
+                        supplemental_predictions_df,
+                        model_version="feedback_supplied",
+                    )
             self.log_manager_feedback(manager_feedback_df)
 
         feedback_df = self.build_feedback_frame()

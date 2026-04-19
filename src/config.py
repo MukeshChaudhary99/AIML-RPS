@@ -15,6 +15,21 @@ class DataConfig:
 class ForecastConfig:
     model_version: str
     auto_retrain: bool
+    n_jobs: int
+    n_estimators: int
+    max_depth: int
+    learning_rate: float
+    subsample: float
+    colsample_bytree: float
+    min_child_weight: float
+    gamma: float
+    reg_alpha: float
+    reg_lambda: float
+    early_stopping_rounds: int
+    startup_rows_per_group: int
+    startup_max_test_fraction: float
+    startup_recent_fraction: float
+    startup_random_state: int
 
 
 @dataclass(frozen=True)
@@ -80,6 +95,29 @@ def load_app_config() -> AppConfig:
         forecast=ForecastConfig(
             model_version=os.getenv("RPS_MODEL_VERSION", "xgb_feedback_v1"),
             auto_retrain=_get_bool_env("RPS_AUTO_RETRAIN", True),
+            n_jobs=int(os.getenv("RPS_XGB_N_JOBS", "1")),
+            n_estimators=int(os.getenv("RPS_XGB_N_ESTIMATORS", "800")),
+            max_depth=int(os.getenv("RPS_XGB_MAX_DEPTH", "4")),
+            learning_rate=float(os.getenv("RPS_XGB_LEARNING_RATE", "0.025")),
+            subsample=float(os.getenv("RPS_XGB_SUBSAMPLE", "0.90")),
+            colsample_bytree=float(os.getenv("RPS_XGB_COLSAMPLE_BYTREE", "0.90")),
+            min_child_weight=float(os.getenv("RPS_XGB_MIN_CHILD_WEIGHT", "2.0")),
+            gamma=float(os.getenv("RPS_XGB_GAMMA", "0.05")),
+            reg_alpha=float(os.getenv("RPS_XGB_REG_ALPHA", "0.25")),
+            reg_lambda=float(os.getenv("RPS_XGB_REG_LAMBDA", "5.0")),
+            early_stopping_rounds=int(
+                os.getenv("RPS_XGB_EARLY_STOPPING_ROUNDS", "50")
+            ),
+            startup_rows_per_group=int(
+                os.getenv("RPS_STARTUP_ROWS_PER_GROUP", "6")
+            ),
+            startup_max_test_fraction=float(
+                os.getenv("RPS_STARTUP_MAX_TEST_FRACTION", "0.18")
+            ),
+            startup_recent_fraction=float(
+                os.getenv("RPS_STARTUP_RECENT_FRACTION", "0.40")
+            ),
+            startup_random_state=int(os.getenv("RPS_STARTUP_RANDOM_STATE", "42")),
         ),
         staff=StaffConfig(
             prep_buffer_multiplier=float(

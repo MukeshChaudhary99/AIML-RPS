@@ -355,12 +355,15 @@
         "entries": [
           {
             "timestamp": "2026-07-15T20:00:00",
+            "predicted_covers": 34,
             "actual_covers": 26,
             "actual_reservations": 10,
             "actual_walk_ins": 16,
             "manager_note": "Heavy rain reduced walk-ins more than expected.",
-            "corrected_covers": 26,
-            "manager_reason": "rain"
+            "rain_mm": 14.0,
+            "temp_c": 24.0,
+            "is_weekend": 0,
+            "season": "monsoon"
           }
         ],
         "retrain": true
@@ -373,17 +376,21 @@
         "entries": [
           {
             "timestamp": "2026-08-08T19:00:00",
+            "predicted_covers": 49,
             "actual_covers": 58,
             "manager_note": "Event crowd arrived earlier than usual.",
-            "corrected_covers": 58,
-            "manager_reason": "event"
+            "event_flag": 1,
+            "is_weekend": 1,
+            "season": "monsoon"
           },
           {
             "timestamp": "2026-08-08T20:00:00",
+            "predicted_covers": 54,
             "actual_covers": 64,
             "manager_note": "Event crowd stayed longer and dinner demand was stronger.",
-            "corrected_covers": 64,
-            "manager_reason": "event"
+            "event_flag": 1,
+            "is_weekend": 1,
+            "season": "monsoon"
           }
         ],
         "retrain": true
